@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RateIQ — Hotel Rate Intelligence Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ─── CSS Variables & Base ─── */
+  :root {
+    --bg: #f0f2f7;
+    --surface: #ffffff;
+    --surface2: #f8f9fc;
+    --border: #e2e6ef;
+    --text: #0d1b2a;
+    --text-muted: #6b7a99;
+    --accent: #1a56db;
+    --accent-light: #e8effe;
+    --accent2: #0ea5e9;
+    --sand: #f59e0b;
+    --sand-light: #fef3c7;
+    --green: #10b981;
+    --green-light: #d1fae5;
+    --red: #ef4444;
+    --red-light: #fee2e2;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+    --radius: 14px;
+    --font-display: 'DM Serif Display', serif;
+    --font-body: 'Plus Jakarta Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  .dark {
+    --bg: #0b0f1a;
+    --surface: #141927;
+    --surface2: #1a2035;
+    --border: #252d45;
+    --text: #e8edf8;
+    --text-muted: #6b7a99;
+    --accent: #4d8cf8;
+    --accent-light: #1a2540;
+    --sand: #fbbf24;
+    --sand-light: #292000;
+    --green: #34d399;
+    --green-light: #052e16;
+    --red: #f87171;
+    --red-light: #2e0707;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  /* ─── Layout ─── */
+  .dashboard { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 240px; min-width: 240px; background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 0;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    box-shadow: var(--shadow);
+    transition: background 0.3s, border-color 0.3s;
+    z-index: 50;
+  }
+  .main { flex: 1; overflow-x: hidden; padding: 0; }
+
+  /* ─── Sidebar ─── */
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-mark {
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .logo-badge {
+    background: var(--accent); color: #fff;
+    font-size: 9px; font-family: var(--font-mono);
+    padding: 2px 6px; border-radius: 4px; font-weight: 500;
+    letter-spacing: 1px;
+  }
+  .sidebar-section-title {
+    font-size: 10px; font-weight: 600; color: var(--text-muted);
+    letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 20px 20px 8px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 20px; cursor: pointer; border-radius: 0;
+    color: var(--text-muted); font-weight: 500; font-size: 13px;
+    transition: all 0.15s; border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: var(--accent-light); color: var(--accent); }
+  .nav-item.active { background: var(--accent-light); color: var(--accent); border-left-color: var(--accent); }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  /* ─── Top Bar ─── */
+  .topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 28px; display: flex; align-items: center;
+    gap: 16px; position: sticky; top: 0; z-index: 40;
+    box-shadow: var(--shadow); transition: background 0.3s;
+  }
+  .topbar-title { font-weight: 700; font-size: 16px; flex: 1; }
+  .topbar-subtitle { color: var(--text-muted); font-size: 12px; font-weight: 400; }
+
+  /* ─── Cards ─── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .kpi-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    box-shadow: var(--shadow); transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 60%, rgba(26,86,219,0.04) 100%);
+    pointer-events: none;
+  }
+  .kpi-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+  .kpi-label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+  .kpi-value {
+    font-family: var(--font-mono); font-size: 28px; font-weight: 500;
+    color: var(--text); line-height: 1.2; margin: 6px 0 4px;
+  }
+  .kpi-delta {
+    font-size: 12px; font-weight: 600; padding: 2px 8px;
+    border-radius: 20px; display: inline-flex; align-items: center; gap: 3px;
+  }
+  .kpi-delta.up { background: var(--green-light); color: var(--green); }
+  .kpi-delta.down { background: var(--red-light); color: var(--red); }
+  .kpi-icon {
+    position: absolute; top: 16px; right: 16px;
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-light);
+  }
+  .kpi-icon svg { color: var(--accent); width: 18px; height: 18px; }
+
+  /* ─── Date Controls ─── */
+  .date-controls {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+    box-shadow: var(--shadow);
+  }
+  .quick-btn {
+    padding: 6px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text-muted); font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s; font-family: var(--font-body);
+  }
+  .quick-btn:hover, .quick-btn.active {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+  input[type="text"].date-input {
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 12px; font-size: 13px; background: var(--surface2);
+    color: var(--text); font-family: var(--font-mono);
+    outline: none; width: 150px; transition: border 0.15s;
+  }
+  input[type="text"].date-input:focus { border-color: var(--accent); }
+
+  /* ─── Filters ─── */
+  .filter-bar {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 20px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+    box-shadow: var(--shadow);
+  }
+  select.filter-select {
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 28px 7px 12px; font-size: 12px; background: var(--surface2);
+    color: var(--text); font-family: var(--font-body); outline: none;
+    cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7a99' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    transition: border 0.15s;
+  }
+  select.filter-select:focus { border-color: var(--accent); }
+
+  /* ─── Table ─── */
+  .table-wrap {
+    overflow-x: auto; border-radius: var(--radius);
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead { position: sticky; top: 0; z-index: 10; }
+  thead th {
+    background: var(--surface2); color: var(--text-muted);
+    font-size: 11px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; padding: 12px 16px;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+    cursor: pointer; user-select: none; transition: color 0.15s;
+  }
+  thead th:hover { color: var(--accent); }
+  thead th .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.4; }
+  thead th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--accent-light); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td { padding: 11px 16px; font-size: 13px; white-space: nowrap; }
+  .date-cell { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+  .day-cell { font-weight: 600; font-size: 12px; }
+  .rate-cell { font-family: var(--font-mono); font-weight: 500; }
+  .rate-sand { color: var(--sand); }
+  .rate-ocean { color: var(--accent2); }
+  .rate-green { color: var(--green); font-weight: 700; }
+  .rate-red { color: var(--red); }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-neutral { background: var(--surface2); color: var(--text-muted); }
+  .badge-sand { background: var(--sand-light); color: var(--sand); }
+  .weekend-row { background: linear-gradient(90deg, var(--sand-light), transparent 30%); }
+  .weekend-row:hover { background: var(--accent-light) !important; }
+
+  /* ─── Charts ─── */
+  .chart-container { position: relative; }
+
+  /* ─── Alert Banner ─── */
+  .alert-banner {
+    background: linear-gradient(135deg, #1a56db 0%, #0ea5e9 100%);
+    border-radius: var(--radius); padding: 14px 20px;
+    color: #fff; display: flex; align-items: center; gap: 12px;
+    font-size: 13px; font-weight: 500;
+  }
+  .alert-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #fbbf24; animation: pulse 1.5s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+  /* ─── Recommendation ─── */
+  .rec-card {
+    background: linear-gradient(135deg, var(--green-light) 0%, var(--accent-light) 100%);
+    border: 1px solid var(--green); border-radius: var(--radius); padding: 16px 20px;
+  }
+  .dark .rec-card { background: linear-gradient(135deg, var(--green-light) 0%, var(--accent-light) 100%); }
+
+  /* ─── Heatmap ─── */
+  .heatmap-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+  .heatmap-cell {
+    aspect-ratio: 1; border-radius: 4px; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    font-size: 10px; cursor: default; transition: transform 0.1s;
+    position: relative;
+  }
+  .heatmap-cell:hover { transform: scale(1.15); z-index: 5; }
+  .heatmap-day { font-weight: 600; font-size: 11px; line-height: 1; }
+  .heatmap-diff { font-size: 9px; font-family: var(--font-mono); opacity: 0.9; }
+  .heatmap-header { font-weight: 700; font-size: 10px; color: var(--text-muted); text-align: center; padding: 2px 0; }
+
+  /* ─── Toggle & Buttons ─── */
+  .toggle-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 14px; cursor: pointer;
+    font-size: 12px; font-weight: 600; color: var(--text-muted);
+    transition: all 0.15s; font-family: var(--font-body);
+  }
+  .toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .export-btn {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; padding: 8px 16px; cursor: pointer;
+    font-size: 12px; font-weight: 600; font-family: var(--font-body);
+    transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+  }
+  .export-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .export-btn.secondary {
+    background: var(--surface2); color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .export-btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── Scrollbar ─── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* ─── Tabs ─── */
+  .tab-bar { display: flex; gap: 2px; background: var(--surface2); border-radius: 10px; padding: 3px; }
+  .tab-btn {
+    flex: 1; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    color: var(--text-muted); cursor: pointer; transition: all 0.15s; border: none;
+    background: transparent; font-family: var(--font-body); text-align: center;
+  }
+  .tab-btn.active { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+
+  /* ─── Tooltip ─── */
+  .tooltip {
+    position: absolute; background: var(--text); color: var(--surface);
+    font-size: 11px; padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+    pointer-events: none; z-index: 100; font-family: var(--font-mono);
+    bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .heatmap-cell:hover .tooltip { opacity: 1; }
+
+  /* ─── Property Legend ─── */
+  .prop-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { width: 100%; }
+    .topbar { padding: 12px 16px; }
+  }
+  @media (max-width: 600px) {
+    .date-controls, .filter-bar { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* ─── Section spacing ─── */
+  .content-wrap { padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+  .section-title {
+    font-family: var(--font-display); font-size: 17px; color: var(--text);
+    margin-bottom: 12px;
+  }
+  .section-subtitle { font-size: 12px; color: var(--text-muted); margin-top: -8px; margin-bottom: 12px; }
+
+  /* ─── Flatpickr dark override ─── */
+  .dark .flatpickr-calendar {
+    background: var(--surface); border-color: var(--border); color: var(--text);
+  }
+  .dark .flatpickr-day { color: var(--text); }
+  .dark .flatpickr-day:hover { background: var(--accent-light); }
+  .dark .flatpickr-months { background: var(--surface2); }
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+
+  <!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+        </svg>
+        RateIQ
+        <span class="logo-badge">PRO</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Revenue Intelligence</div>
+    </div>
+
+    <div class="sidebar-section-title">Navigation</div>
+    <div class="nav-item active" onclick="showTab('overview')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Overview
+    </div>
+    <div class="nav-item" onclick="showTab('rateTable')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+      Rate Table
+    </div>
+    <div class="nav-item" onclick="showTab('charts')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-6 4 4 4-8"/></svg>
+      Analytics
+    </div>
+    <div class="nav-item" onclick="showTab('heatmap')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+      Heatmap
+    </div>
+    <div class="nav-item" onclick="showTab('insights')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+      Insights
+    </div>
+
+    <div class="sidebar-section-title">Properties</div>
+    <div style="padding:0 16px;display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 4px;">
+        <div class="prop-dot" style="background:#f59e0b;"></div>
+        <div>
+          <div style="font-size:12px;font-weight:600;">Sandalfoot</div>
+          <div style="font-size:11px;color:var(--text-muted);">Your Property</div>
+        </div>
+        <div style="margin-left:auto;font-size:10px;background:var(--sand-light);color:var(--sand);padding:2px 6px;border-radius:4px;font-weight:600;">HOME</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 4px;">
+        <div class="prop-dot" style="background:#0ea5e9;"></div>
+        <div>
+          <div style="font-size:12px;font-weight:600;">Ocean's Reach</div>
+          <div style="font-size:11px;color:var(--text-muted);">Competitor</div>
+        </div>
+        <div style="margin-left:auto;font-size:10px;background:var(--accent-light);color:var(--accent2);padding:2px 6px;border-radius:4px;font-weight:600;">COMP</div>
+      </div>
+    </div>
+
+    <div style="margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;color:var(--text-muted);">Last updated</div>
+      <div style="font-size:12px;font-weight:600;" id="lastUpdated"></div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════ MAIN ═══════════════════════════════ -->
+  <main class="main">
+
+    <!-- Top Bar -->
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Rate Comparison Dashboard <span class="topbar-subtitle">— Florida Gulf Coast</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+        <!-- Alert Indicator -->
+        <div id="alertIndicator" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--accent-light);border-radius:8px;cursor:pointer;" onclick="showTab('insights')">
+          <div class="alert-dot"></div>
+          <span style="font-size:12px;font-weight:600;color:var(--accent);" id="alertCount">3 alerts</span>
+        </div>
+        <!-- Dark Mode -->
+        <button class="toggle-btn" onclick="toggleDark()" id="darkBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          Dark
+        </button>
+        <!-- Export -->
+        <button class="export-btn secondary" onclick="exportCSV()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </button>
+        <button class="export-btn" onclick="exportExcel()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Excel
+        </button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content-wrap">
+
+      <!-- ── Date Controls ── -->
+      <div class="date-controls">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span style="font-size:12px;font-weight:600;color:var(--text-muted);">DATE RANGE:</span>
+        <input type="text" class="date-input" id="startDate" placeholder="Start date">
+        <span style="color:var(--text-muted);">→</span>
+        <input type="text" class="date-input" id="endDate" placeholder="End date">
+        <div style="width:1px;height:24px;background:var(--border);"></div>
+        <button class="quick-btn" onclick="setRange('thisWeek')">This Week</button>
+        <button class="quick-btn" onclick="setRange('nextWeek')">Next Week</button>
+        <button class="quick-btn" onclick="setRange('30days')">30 Days</button>
+        <button class="quick-btn" onclick="setRange('90days')">90 Days</button>
+        <button class="quick-btn" onclick="setRange('12months')">12 Months</button>
+        <button class="export-btn" style="margin-left:auto;" onclick="applyDateRange()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Apply
+        </button>
+      </div>
+
+      <!-- ── Filters ── -->
+      <div class="filter-bar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        <span style="font-size:12px;font-weight:600;color:var(--text-muted);">FILTERS:</span>
+        <select class="filter-select" id="filterRoomType" onchange="applyFilters()">
+          <option value="all">All Room Types</option>
+          <option value="studio">Studio</option>
+          <option value="1br">1BR Gulf View</option>
+          <option value="2br">2BR Gulf View</option>
+          <option value="2br-garden">2BR Garden View</option>
+          <option value="penthouse">Penthouse</option>
+        </select>
+        <select class="filter-select" id="filterLOS" onchange="applyFilters()">
+          <option value="all">Any Stay Length</option>
+          <option value="1">1 Night</option>
+          <option value="3">3 Nights</option>
+          <option value="7">7 Nights</option>
+        </select>
+        <select class="filter-select" id="filterOccupancy" onchange="applyFilters()">
+          <option value="all">Any Occupancy</option>
+          <option value="2">2 Guests</option>
+          <option value="4">4 Guests</option>
+          <option value="6">6 Guests</option>
+        </select>
+        <select class="filter-select" id="filterChannel" onchange="applyFilters()">
+          <option value="all">All Channels</option>
+          <option value="direct">Direct</option>
+          <option value="vrbo">VRBO</option>
+          <option value="airbnb">Airbnb</option>
+          <option value="booking">Booking.com</option>
+        </select>
+        <select class="filter-select" id="filterDayType" onchange="applyFilters()">
+          <option value="all">All Days</option>
+          <option value="weekday">Weekdays Only</option>
+          <option value="weekend">Weekends Only</option>
+        </select>
+        <button class="quick-btn" onclick="clearFilters()">Clear All</button>
+      </div>
+
+      <!-- ════════════════ TAB: OVERVIEW ════════════════ -->
+      <div id="tab-overview">
+
+        <!-- KPI Cards -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
+          <!-- ADR Sandalfoot -->
+          <div class="kpi-card">
+            <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <div class="kpi-label">Sandalfoot ADR</div>
+            <div class="kpi-value" id="kpi-sand-adr">$—</div>
+            <span class="kpi-delta up" id="kpi-sand-adr-delta">+0%</span>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">vs prev period</div>
+          </div>
+          <!-- ADR Ocean's Reach -->
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#e0f2fe,#bae6fd);"><svg viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <div class="kpi-label">Ocean's Reach ADR</div>
+            <div class="kpi-value" id="kpi-ocean-adr">$—</div>
+            <span class="kpi-delta" id="kpi-ocean-adr-delta">+0%</span>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">vs prev period</div>
+          </div>
+          <!-- Rate Position Index -->
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);"><svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+            <div class="kpi-label">Rate Position Index</div>
+            <div class="kpi-value" id="kpi-rpi">—</div>
+            <span class="kpi-delta" id="kpi-rpi-delta">market</span>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">&lt;1.0 = under-market</div>
+          </div>
+          <!-- RevPAR -->
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);"><svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M3 3v18h18"/><path d="M18.5 8l-6 6-2-2-3 3"/></svg></div>
+            <div class="kpi-label">Est. RevPAR</div>
+            <div class="kpi-value" id="kpi-revpar">$—</div>
+            <span class="kpi-delta up" id="kpi-revpar-delta">+0%</span>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">based on 85% occ.</div>
+          </div>
+          <!-- Avg Difference -->
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe);"><svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
+            <div class="kpi-label">Avg Rate Spread</div>
+            <div class="kpi-value" id="kpi-spread">$—</div>
+            <span class="kpi-delta" id="kpi-spread-delta">+0%</span>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Sandalfoot vs Comp</div>
+          </div>
+          <!-- Cheaper Days -->
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8);"><svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <div class="kpi-label">Days We Win</div>
+            <div class="kpi-value" id="kpi-wins">—</div>
+            <span class="kpi-delta" id="kpi-wins-delta">of period</span>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Sandalfoot lower rate</div>
+          </div>
+        </div>
+
+        <!-- Alert Banner -->
+        <div class="alert-banner">
+          <div class="alert-dot"></div>
+          <div>
+            <strong>Rate Alert:</strong> Ocean's Reach dropped rates by 15%+ for <span id="alertDates">Jun 14–21</span> — consider matching or undercutting to capture demand.
+          </div>
+          <button onclick="dismissAlert(this)" style="margin-left:auto;background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;font-family:var(--font-body);">Dismiss</button>
+        </div>
+
+        <!-- Mini Line Chart -->
+        <div class="card" style="padding:20px;">
+          <h2 class="section-title">Rate Trend Overview</h2>
+          <p class="section-subtitle">Daily rates for the selected period</p>
+          <div class="chart-container" style="height:240px;">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Monthly ADR & Win Rate -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="card" style="padding:20px;">
+            <h2 class="section-title">Monthly ADR Comparison</h2>
+            <p class="section-subtitle">Average daily rate by month</p>
+            <div class="chart-container" style="height:200px;">
+              <canvas id="monthlyChart"></canvas>
+            </div>
+          </div>
+          <div class="card" style="padding:20px;">
+            <h2 class="section-title">Rate Position by Month</h2>
+            <p class="section-subtitle">Rate Position Index (1.0 = parity)</p>
+            <div class="chart-container" style="height:200px;">
+              <canvas id="rpiChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /tab-overview -->
+
+      <!-- ════════════════ TAB: RATE TABLE ════════════════ -->
+      <div id="tab-rateTable" style="display:none;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <h2 class="section-title" style="margin:0;">Daily Rate Comparison</h2>
+          <div style="font-size:12px;color:var(--text-muted);" id="tableRowCount"></div>
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <button class="export-btn secondary" onclick="exportCSV()">Export CSV</button>
+            <button class="export-btn" onclick="exportExcel()">Export Excel</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="rateTable">
+            <thead>
+              <tr>
+                <th onclick="sortTable('date')">Date <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable('day')">Day <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable('room')">Room Type <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable('sandalfoot')">🏖 Sandalfoot <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable('ocean')">🌊 Ocean's Reach <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable('diff')">Difference <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable('pct')">% Variance <span class="sort-icon">↕</span></th>
+                <th>Position</th>
+                <th>Channel</th>
+              </tr>
+            </thead>
+            <tbody id="rateTableBody">
+            </tbody>
+          </table>
+        </div>
+        <!-- Summary Row -->
+        <div class="card" style="padding:16px 20px;margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;" id="tableSummary">
+        </div>
+      </div><!-- /tab-rateTable -->
+
+      <!-- ════════════════ TAB: CHARTS ════════════════ -->
+      <div id="tab-charts" style="display:none;">
+        <div class="tab-bar" style="max-width:400px;margin-bottom:16px;">
+          <button class="tab-btn active" onclick="switchChart('line',this)">Rate Line</button>
+          <button class="tab-btn" onclick="switchChart('bar',this)">Weekly Avg</button>
+          <button class="tab-btn" onclick="switchChart('diff',this)">Spread Chart</button>
+          <button class="tab-btn" onclick="switchChart('dist',this)">Distribution</button>
+        </div>
+        <div class="card" style="padding:24px;">
+          <div id="chartLineWrap">
+            <h2 class="section-title">Rate Comparison — Line Chart</h2>
+            <p class="section-subtitle">Sandalfoot vs Ocean's Reach daily rates</p>
+            <div class="chart-container" style="height:340px;"><canvas id="mainLineChart"></canvas></div>
+          </div>
+          <div id="chartBarWrap" style="display:none;">
+            <h2 class="section-title">Weekly Average Rate Comparison</h2>
+            <p class="section-subtitle">Grouped by week</p>
+            <div class="chart-container" style="height:340px;"><canvas id="weeklyBarChart"></canvas></div>
+          </div>
+          <div id="chartDiffWrap" style="display:none;">
+            <h2 class="section-title">Rate Spread (Sandalfoot - Ocean's Reach)</h2>
+            <p class="section-subtitle">Positive = Sandalfoot higher, Negative = Sandalfoot lower</p>
+            <div class="chart-container" style="height:340px;"><canvas id="diffChart"></canvas></div>
+          </div>
+          <div id="chartDistWrap" style="display:none;">
+            <h2 class="section-title">Rate Distribution</h2>
+            <p class="section-subtitle">Frequency of rate levels by property</p>
+            <div class="chart-container" style="height:340px;"><canvas id="distChart"></canvas></div>
+          </div>
+        </div>
+      </div><!-- /tab-charts -->
+
+      <!-- ════════════════ TAB: HEATMAP ════════════════ -->
+      <div id="tab-heatmap" style="display:none;">
+        <h2 class="section-title">Rate Differential Heatmap</h2>
+        <p class="section-subtitle">Green = Sandalfoot cheaper · Red = Ocean's Reach cheaper · Intensity = magnitude</p>
+        <div class="card" style="padding:20px;">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+              <div style="width:16px;height:16px;border-radius:3px;background:#10b981;opacity:0.8;"></div> Sandalfoot cheaper
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+              <div style="width:16px;height:16px;border-radius:3px;background:#ef4444;opacity:0.8;"></div> Ocean's Reach cheaper
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+              <div style="width:16px;height:16px;border-radius:3px;background:#6b7a99;opacity:0.5;"></div> At parity
+            </div>
+          </div>
+          <div id="heatmapContainer"></div>
+        </div>
+      </div><!-- /tab-heatmap -->
+
+      <!-- ════════════════ TAB: INSIGHTS ════════════════ -->
+      <div id="tab-insights" style="display:none;">
+        <h2 class="section-title">Revenue Intelligence</h2>
+
+        <!-- Alerts -->
+        <div style="margin-bottom:20px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">⚡ Active Rate Alerts</div>
+          <div style="display:flex;flex-direction:column;gap:10px;" id="alertsList"></div>
+        </div>
+
+        <!-- Recommendations -->
+        <div style="margin-bottom:20px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">💡 Pricing Recommendations</div>
+          <div style="display:flex;flex-direction:column;gap:10px;" id="recsList"></div>
+        </div>
+
+        <!-- Occ vs ADR -->
+        <div class="card" style="padding:20px;margin-bottom:16px;">
+          <h2 class="section-title">Occupancy vs. ADR Insights</h2>
+          <p class="section-subtitle">Simulated relationship between occupancy and rate positioning</p>
+          <div class="chart-container" style="height:240px;"><canvas id="occAdrChart"></canvas></div>
+        </div>
+
+        <!-- KPI deep dive -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+          <div class="card" style="padding:16px;">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Peak Season</div>
+            <div style="font-family:var(--font-mono);font-size:18px;font-weight:600;" id="ins-peak-dates">Jun–Aug</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Highest demand window</div>
+          </div>
+          <div class="card" style="padding:16px;">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Best Rate Day</div>
+            <div style="font-family:var(--font-mono);font-size:18px;font-weight:600;" id="ins-best-day">Saturday</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Avg highest ADR day</div>
+          </div>
+          <div class="card" style="padding:16px;">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Price Gap</div>
+            <div style="font-family:var(--font-mono);font-size:18px;font-weight:600;" id="ins-gap">$—</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Max single-day spread</div>
+          </div>
+          <div class="card" style="padding:16px;">
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Optimal Rate</div>
+            <div style="font-family:var(--font-mono);font-size:18px;font-weight:600;" id="ins-optimal">$—</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Recommended avg ADR</div>
+          </div>
+        </div>
+
+      </div><!-- /tab-insights -->
+
+    </div><!-- /content-wrap -->
+  </main>
+</div>
+
+<!-- ═══════════════════════════════ JAVASCRIPT ═══════════════════════════════ -->
+<script>
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    DATA GENERATION                               ║
+// ║  Generates realistic mock hotel rate data for 12 months         ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const ROOM_TYPES = ['Studio', '1BR Gulf View', '2BR Gulf View', '2BR Garden View', 'Penthouse'];
+const CHANNELS   = ['Direct', 'VRBO', 'Airbnb', 'Booking.com'];
+
+// Base rates by room type (Sandalfoot)
+const BASE_RATES = {
+  'Studio':          { sand: 175, ocean: 185 },
+  '1BR Gulf View':   { sand: 245, ocean: 259 },
+  '2BR Gulf View':   { sand: 325, ocean: 349 },
+  '2BR Garden View': { sand: 285, ocean: 299 },
+  'Penthouse':       { sand: 525, ocean: 549 },
+};
+
+// Seasonal multiplier function (peaks in summer & spring break)
+function seasonalMultiplier(date) {
+  const m = date.getMonth(); // 0-indexed
+  const d = date.getDate();
+  const dow = date.getDay(); // 0=Sun
+  let mult = 1.0;
+  if (m === 5 || m === 6 || m === 7) mult *= 1.45; // Jun-Aug peak
+  else if (m === 2 && d >= 5 && d <= 25) mult *= 1.35; // Spring break
+  else if (m === 11 || m === 0) mult *= 1.15; // Holiday
+  else if (m === 1) mult *= 1.05; // February
+  else if (m === 8 || m === 9) mult *= 0.88; // Sep-Oct soft
+  if (dow === 5 || dow === 6 || dow === 0) mult *= 1.12; // Fri/Sat/Sun premium
+  return mult;
+};
+
+// Generate mock data for 366 days
+function generateData() {
+  const data = [];
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  for (let i = 0; i < 366; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    ROOM_TYPES.forEach((rt, ri) => {
+      const base = BASE_RATES[rt];
+      const sm = seasonalMultiplier(d);
+      // Add controlled randomness
+      const sandRand  = 0.96 + Math.random() * 0.08;
+      const oceanRand = 0.95 + Math.random() * 0.10;
+      // Occasional competitor promotions (10% chance)
+      const compPromo = Math.random() < 0.10 ? 0.85 : 1.0;
+      const sandRate  = Math.round(base.sand  * sm * sandRand  / 5) * 5;
+      const oceanRate = Math.round(base.ocean * sm * oceanRand * compPromo / 5) * 5;
+      data.push({
+        date:     d.toISOString().split('T')[0],
+        dateObj:  d,
+        dayOfWeek: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],
+        isWeekend: d.getDay() === 0 || d.getDay() === 5 || d.getDay() === 6,
+        room_type: rt,
+        sandalfoot_rate: sandRate,
+        oceansreach_rate: oceanRate,
+        channel: CHANNELS[ri % CHANNELS.length],
+        occupancy: ri === 2 ? 4 : (ri === 0 ? 2 : 6),
+        los: 1,
+      });
+    });
+  }
+  return data;
+}
+
+let ALL_DATA = generateData();
+let FILTERED_DATA = [...ALL_DATA];
+let DISPLAY_DATA  = [...ALL_DATA];
+
+// Chart instances (to destroy & recreate on update)
+let charts = {};
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    DATE RANGE HELPERS                            ║
+// ╚══════════════════════════════════════════════════════════════════╝
+let fpStart, fpEnd;
+let currentStart, currentEnd;
+
+function initDatePickers() {
+  const today = new Date();
+  currentStart = new Date(today);
+  currentEnd = new Date(today);
+  currentEnd.setDate(today.getDate() + 29);
+
+  fpStart = flatpickr('#startDate', {
+    dateFormat: 'M d, Y',
+    defaultDate: currentStart,
+    onChange: ([d]) => { currentStart = d; }
+  });
+  fpEnd = flatpickr('#endDate', {
+    dateFormat: 'M d, Y',
+    defaultDate: currentEnd,
+    onChange: ([d]) => { currentEnd = d; }
+  });
+}
+
+function setRange(type) {
+  const t = new Date(); t.setHours(0,0,0,0);
+  let s = new Date(t), e = new Date(t);
+  // Monday of current week
+  const dow = t.getDay();
+  if (type === 'thisWeek') {
+    s.setDate(t.getDate() - dow);
+    e.setDate(s.getDate() + 6);
+  } else if (type === 'nextWeek') {
+    s.setDate(t.getDate() - dow + 7);
+    e.setDate(s.getDate() + 6);
+  } else if (type === '30days') {
+    e.setDate(t.getDate() + 29);
+  } else if (type === '90days') {
+    e.setDate(t.getDate() + 89);
+  } else if (type === '12months') {
+    e.setDate(t.getDate() + 364);
+  }
+  currentStart = s; currentEnd = e;
+  fpStart.setDate(s); fpEnd.setDate(e);
+  document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  applyDateRange();
+}
+
+function applyDateRange() {
+  const s = currentStart, e = currentEnd;
+  FILTERED_DATA = ALL_DATA.filter(r => {
+    const d = r.dateObj;
+    return d >= s && d <= e;
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  const rt = document.getElementById('filterRoomType').value;
+  const los = document.getElementById('filterLOS').value;
+  const occ = document.getElementById('filterOccupancy').value;
+  const ch = document.getElementById('filterChannel').value;
+  const dt = document.getElementById('filterDayType').value;
+
+  DISPLAY_DATA = FILTERED_DATA.filter(r => {
+    if (rt !== 'all') {
+      const map = { studio:'Studio', '1br':'1BR Gulf View', '2br':'2BR Gulf View', '2br-garden':'2BR Garden View', penthouse:'Penthouse' };
+      if (r.room_type !== map[rt]) return false;
+    }
+    if (ch !== 'all' && r.channel !== ch) return false;
+    if (occ !== 'all' && r.occupancy !== parseInt(occ)) return false;
+    if (dt === 'weekday' && r.isWeekend) return false;
+    if (dt === 'weekend' && !r.isWeekend) return false;
+    return true;
+  });
+
+  refreshAll();
+}
+
+function clearFilters() {
+  document.querySelectorAll('.filter-select').forEach(s => s.value = 'all');
+  DISPLAY_DATA = [...FILTERED_DATA];
+  refreshAll();
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    REFRESH ALL VIEWS                             ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function refreshAll() {
+  updateKPIs();
+  renderTable();
+  renderCharts();
+  renderHeatmap();
+  renderInsights();
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    KPI CALCULATIONS                              ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function calcStats(data) {
+  if (!data.length) return {};
+  const sandRates  = data.map(r => r.sandalfoot_rate);
+  const oceanRates = data.map(r => r.oceansreach_rate);
+  const sandADR    = avg(sandRates);
+  const oceanADR   = avg(oceanRates);
+  const diffs      = data.map(r => r.sandalfoot_rate - r.oceansreach_rate);
+  const avgDiff    = avg(diffs);
+  const rpi        = sandADR / oceanADR;
+  const wins       = data.filter(r => r.sandalfoot_rate <= r.oceansreach_rate).length;
+  return { sandADR, oceanADR, avgDiff, rpi, wins, total: data.length, sandRates, oceanRates, diffs };
+}
+
+function avg(arr) { return arr.reduce((a,b) => a+b, 0) / arr.length; }
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+function fmtPct(n) { return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'; }
+
+function updateKPIs() {
+  const s = calcStats(DISPLAY_DATA);
+  if (!s.sandADR) return;
+
+  set('kpi-sand-adr', fmt(s.sandADR));
+  set('kpi-ocean-adr', fmt(s.oceanADR));
+  set('kpi-rpi', s.rpi.toFixed(2));
+  set('kpi-revpar', fmt(s.sandADR * 0.85));
+  set('kpi-spread', fmt(Math.abs(s.avgDiff)));
+  set('kpi-wins', Math.round(s.wins / s.total * 100) + '%');
+
+  const rpiDelta = document.getElementById('kpi-rpi-delta');
+  rpiDelta.textContent = s.rpi >= 1 ? 'above market' : 'below market';
+  rpiDelta.className = 'kpi-delta ' + (s.rpi >= 1 ? 'up' : 'down');
+
+  const spreadDelta = document.getElementById('kpi-spread-delta');
+  spreadDelta.textContent = s.avgDiff >= 0 ? 'Sand higher' : 'Sand lower';
+  spreadDelta.className = 'kpi-delta ' + (s.avgDiff <= 0 ? 'up' : 'down');
+
+  // Deltas vs hypothetical prior (±5-8% variance for demo)
+  const priorSand = s.sandADR * (0.94 + Math.random()*0.04);
+  const sandChg = ((s.sandADR - priorSand) / priorSand * 100);
+  const d1 = document.getElementById('kpi-sand-adr-delta');
+  d1.textContent = fmtPct(sandChg); d1.className = 'kpi-delta ' + (sandChg>=0?'up':'down');
+
+  const priorOcean = s.oceanADR * (0.93 + Math.random()*0.06);
+  const oceanChg = ((s.oceanADR - priorOcean) / priorOcean * 100);
+  const d2 = document.getElementById('kpi-ocean-adr-delta');
+  d2.textContent = fmtPct(oceanChg); d2.className = 'kpi-delta ' + (oceanChg>=0?'up':'down');
+
+  const revChg = 4.2;
+  const d3 = document.getElementById('kpi-revpar-delta');
+  d3.textContent = fmtPct(revChg); d3.className = 'kpi-delta up';
+
+  const winsEl = document.getElementById('kpi-wins-delta');
+  winsEl.textContent = 'of period';
+  winsEl.className = 'kpi-delta ' + (s.wins/s.total > 0.5 ? 'up' : 'down');
+}
+
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    RATE TABLE                                    ║
+// ╚══════════════════════════════════════════════════════════════════╝
+let sortKey = 'date', sortAsc = true;
+
+function renderTable() {
+  const data = [...DISPLAY_DATA].sort((a, b) => {
+    let av, bv;
+    if (sortKey === 'date')       { av = a.date; bv = b.date; }
+    else if (sortKey === 'day')   { av = a.dayOfWeek; bv = b.dayOfWeek; }
+    else if (sortKey === 'room')  { av = a.room_type; bv = b.room_type; }
+    else if (sortKey === 'sandalfoot') { av = a.sandalfoot_rate; bv = b.sandalfoot_rate; }
+    else if (sortKey === 'ocean') { av = a.oceansreach_rate; bv = b.oceansreach_rate; }
+    else if (sortKey === 'diff')  { av = a.sandalfoot_rate - a.oceansreach_rate; bv = b.sandalfoot_rate - b.oceansreach_rate; }
+    else if (sortKey === 'pct')   { av = (a.sandalfoot_rate - a.oceansreach_rate)/a.oceansreach_rate; bv = (b.sandalfoot_rate - b.oceansreach_rate)/b.oceansreach_rate; }
+    else { av = a[sortKey]; bv = b[sortKey]; }
+    if (av < bv) return sortAsc ? -1 : 1;
+    if (av > bv) return sortAsc ?  1 : -1;
+    return 0;
+  });
+
+  document.getElementById('tableRowCount').textContent = `${data.length} rows`;
+  const tbody = document.getElementById('rateTableBody');
+  tbody.innerHTML = '';
+
+  data.forEach(r => {
+    const diff = r.sandalfoot_rate - r.oceansreach_rate;
+    const pct  = diff / r.oceansreach_rate * 100;
+    const sandWins = r.sandalfoot_rate <= r.oceansreach_rate;
+
+    const tr = document.createElement('tr');
+    tr.className = r.isWeekend ? 'weekend-row' : '';
+    tr.innerHTML = `
+      <td class="date-cell">${r.date}</td>
+      <td class="day-cell" style="color:${r.isWeekend?'var(--sand)':'var(--text-muted)'}">${r.dayOfWeek}${r.isWeekend?' ⭐':''}</td>
+      <td style="font-size:12px;">${r.room_type}</td>
+      <td class="rate-cell ${sandWins?'rate-green':''}">${fmt(r.sandalfoot_rate)}</td>
+      <td class="rate-cell ${!sandWins?'rate-green':''}">${fmt(r.oceansreach_rate)}</td>
+      <td class="rate-cell ${diff>0?'rate-red':diff<0?'rate-green':''}">${diff>0?'+':''}${fmt(diff)}</td>
+      <td><span class="badge ${diff>0?'badge-red':diff<0?'badge-green':'badge-neutral'}">${pct>0?'▲':'▼'} ${Math.abs(pct).toFixed(1)}%</span></td>
+      <td><span class="badge ${sandWins?'badge-green':'badge-sand'}">${sandWins?'✓ Lower':'↑ Higher'}</span></td>
+      <td style="font-size:11px;color:var(--text-muted);">${r.channel}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Summary
+  const s = calcStats(data);
+  const sumEl = document.getElementById('tableSummary');
+  if (s.sandADR) {
+    sumEl.innerHTML = `
+      <div><div class="kpi-label">Sand Avg</div><div class="kpi-value" style="font-size:20px;">${fmt(s.sandADR)}</div></div>
+      <div><div class="kpi-label">Ocean Avg</div><div class="kpi-value" style="font-size:20px;">${fmt(s.oceanADR)}</div></div>
+      <div><div class="kpi-label">Avg Spread</div><div class="kpi-value" style="font-size:20px;color:${s.avgDiff>0?'var(--red)':'var(--green)'}">${s.avgDiff>0?'+':''}${fmt(s.avgDiff)}</div></div>
+      <div><div class="kpi-label">Sand Wins</div><div class="kpi-value" style="font-size:20px;">${Math.round(s.wins/s.total*100)}%</div><div class="kpi-label" style="margin-top:2px;">${s.wins} of ${s.total} days</div></div>
+    `;
+  }
+}
+
+function sortTable(key) {
+  if (sortKey === key) sortAsc = !sortAsc;
+  else { sortKey = key; sortAsc = true; }
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
+  renderTable();
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    CHARTS                                        ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function getChartColors() {
+  const isDark = document.documentElement.classList.contains('dark');
+  return {
+    sand:  '#f59e0b',
+    ocean: '#0ea5e9',
+    green: '#10b981',
+    red:   '#ef4444',
+    purple:'#8b5cf6',
+    grid:  isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+    text:  isDark ? '#6b7a99' : '#6b7a99',
+  };
+}
+
+const CHART_DEFAULTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { labels: { font: { family: "'Plus Jakarta Sans'" }, boxWidth: 12, padding: 16 } } },
+  scales: { x: { ticks: { maxTicksLimit: 12, font: { family: "'DM Mono'", size: 10 } } }, y: { ticks: { font: { family: "'DM Mono'", size: 10 }, callback: v => '$'+v } } }
+};
+
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function renderCharts() {
+  const c = getChartColors();
+  // Sample data every N days for performance
+  const step = Math.max(1, Math.floor(DISPLAY_DATA.length / 90));
+  const uniqueDates = [...new Set(DISPLAY_DATA.map(r => r.date))].sort();
+  // Use 2BR Gulf View as representative room
+  const rep2br = DISPLAY_DATA.filter(r => r.room_type === '2BR Gulf View');
+  const byDate = {};
+  rep2br.forEach(r => { byDate[r.date] = r; });
+  const dates = Object.keys(byDate).sort();
+  const sampledDates = dates.filter((_,i) => i % step === 0);
+  const sandVals  = sampledDates.map(d => byDate[d].sandalfoot_rate);
+  const oceanVals = sampledDates.map(d => byDate[d].oceansreach_rate);
+  const diffVals  = sampledDates.map((d,i) => sandVals[i] - oceanVals[i]);
+  const labels    = sampledDates.map(d => d.slice(5)); // MM-DD
+
+  // ── Trend Mini Chart (overview) ──
+  destroyChart('trendChart');
+  const tc = document.getElementById('trendChart');
+  if (tc) charts['trendChart'] = new Chart(tc, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Sandalfoot', data: sandVals,  borderColor: c.sand,  backgroundColor: c.sand+'18',  fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 },
+        { label: "Ocean's Reach", data: oceanVals, borderColor: c.ocean, backgroundColor: c.ocean+'18', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 },
+      ]
+    },
+    options: { ...CHART_DEFAULTS, scales: { x: { grid:{color:c.grid}, ticks:{maxTicksLimit:8,font:{family:"'DM Mono'",size:10},color:c.text} }, y: { grid:{color:c.grid}, ticks:{font:{family:"'DM Mono'",size:10},callback:v=>'$'+v,color:c.text} } } }
+  });
+
+  // ── Monthly Bar Chart ──
+  const monthlyData = calcMonthlyADR();
+  destroyChart('monthlyChart');
+  const mc = document.getElementById('monthlyChart');
+  if (mc) charts['monthlyChart'] = new Chart(mc, {
+    type: 'bar',
+    data: {
+      labels: monthlyData.map(m => m.label),
+      datasets: [
+        { label: 'Sandalfoot', data: monthlyData.map(m=>m.sand), backgroundColor: c.sand+'cc' },
+        { label: "Ocean's Reach", data: monthlyData.map(m=>m.ocean), backgroundColor: c.ocean+'cc' },
+      ]
+    },
+    options: { ...CHART_DEFAULTS, scales: { x: { grid:{color:c.grid}, ticks:{font:{family:"'DM Mono'",size:10},color:c.text} }, y: { grid:{color:c.grid}, ticks:{font:{family:"'DM Mono'",size:10},callback:v=>'$'+v,color:c.text} } } }
+  });
+
+  // ── RPI Chart ──
+  destroyChart('rpiChart');
+  const rc = document.getElementById('rpiChart');
+  if (rc) charts['rpiChart'] = new Chart(rc, {
+    type: 'line',
+    data: {
+      labels: monthlyData.map(m => m.label),
+      datasets: [
+        { label: 'Rate Position Index', data: monthlyData.map(m => (m.sand/m.ocean).toFixed(3)), borderColor: c.purple, backgroundColor: c.purple+'18', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 3 },
+        { label: 'Parity (1.0)', data: monthlyData.map(()=>1.0), borderColor: c.grid+'aa', borderDash:[6,4], borderWidth:1.5, pointRadius:0 }
+      ]
+    },
+    options: { ...CHART_DEFAULTS, scales: { x:{grid:{color:c.grid},ticks:{font:{family:"'DM Mono'",size:10},color:c.text}}, y:{grid:{color:c.grid},ticks:{font:{family:"'DM Mono'",size:10},color:c.text},min:0.7,max:1.3} }, plugins:{legend:{labels:{font:{family:"'Plus Jakarta Sans'"},boxWidth:12,padding:12}}} }
+  });
+
+  // ── Main Analytics Charts ──
+  destroyChart('mainLineChart');
+  const mlc = document.getElementById('mainLineChart');
+  if (mlc) charts['mainLineChart'] = new Chart(mlc, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Sandalfoot', data: sandVals, borderColor: c.sand, backgroundColor: c.sand+'15', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5 },
+        { label: "Ocean's Reach", data: oceanVals, borderColor: c.ocean, backgroundColor: c.ocean+'15', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5 },
+      ]
+    },
+    options: { ...CHART_DEFAULTS, interaction:{mode:'index',intersect:false}, scales:{x:{grid:{color:c.grid},ticks:{maxTicksLimit:14,font:{family:"'DM Mono'",size:10},color:c.text}},y:{grid:{color:c.grid},ticks:{font:{family:"'DM Mono'",size:10},callback:v=>'$'+v,color:c.text}}} }
+  });
+
+  // ── Weekly Bar ──
+  const weeklyData = calcWeeklyADR();
+  destroyChart('weeklyBarChart');
+  const wbc = document.getElementById('weeklyBarChart');
+  if (wbc) charts['weeklyBarChart'] = new Chart(wbc, {
+    type: 'bar',
+    data: {
+      labels: weeklyData.map(w=>w.label),
+      datasets: [
+        { label: 'Sandalfoot', data: weeklyData.map(w=>w.sand), backgroundColor: c.sand+'cc', borderRadius: 4 },
+        { label: "Ocean's Reach", data: weeklyData.map(w=>w.ocean), backgroundColor: c.ocean+'cc', borderRadius: 4 },
+      ]
+    },
+    options: { ...CHART_DEFAULTS, scales:{x:{grid:{display:false},ticks:{font:{family:"'DM Mono'",size:10},color:c.text}},y:{grid:{color:c.grid},ticks:{font:{family:"'DM Mono'",size:10},callback:v=>'$'+v,color:c.text}}} }
+  });
+
+  // ── Diff Chart ──
+  destroyChart('diffChart');
+  const dc = document.getElementById('diffChart');
+  if (dc) charts['diffChart'] = new Chart(dc, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Rate Spread (Sand - Ocean)',
+        data: diffVals,
+        backgroundColor: diffVals.map(v => v > 0 ? c.red+'bb' : c.green+'bb'),
+        borderRadius: 3
+      }]
+    },
+    options: { ...CHART_DEFAULTS, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false},ticks:{maxTicksLimit:14,font:{family:"'DM Mono'",size:10},color:c.text}},y:{grid:{color:c.grid},ticks:{font:{family:"'DM Mono'",size:10},callback:v=>(v>=0?'+':'')+v,color:c.text}}} }
+  });
+
+  // ── Distribution Chart ──
+  const buckets = [150,200,250,300,350,400,450,500,550,600];
+  const sandDist  = new Array(buckets.length).fill(0);
+  const oceanDist = new Array(buckets.length).fill(0);
+  rep2br.forEach(r => {
+    const si = buckets.findIndex((b,i) => r.sandalfoot_rate < b || i===buckets.length-1);
+    const oi = buckets.findIndex((b,i) => r.oceansreach_rate < b || i===buckets.length-1);
+    if (si>=0) sandDist[si]++;
+    if (oi>=0) oceanDist[oi]++;
+  });
+  destroyChart('distChart');
+  const distC = document.getElementById('distChart');
+  if (distC) charts['distChart'] = new Chart(distC, {
+    type: 'bar',
+    data: {
+      labels: buckets.map((b,i) => i===0?`<$${b}`:`$${buckets[i-1]||0}–$${b}`),
+      datasets: [
+        { label: 'Sandalfoot', data: sandDist, backgroundColor: c.sand+'bb', borderRadius: 4 },
+        { label: "Ocean's Reach", data: oceanDist, backgroundColor: c.ocean+'bb', borderRadius: 4 },
+      ]
+    },
+    options: { ...CHART_DEFAULTS, scales:{x:{grid:{display:false},ticks:{font:{family:"'DM Mono'",size:10},color:c.text}},y:{grid:{color:c.grid},ticks:{font:{family:"'DM Mono'",size:10},color:c.text}}} }
+  });
+
+  // ── Occ/ADR scatter ──
+  const occData = [0.65,0.70,0.75,0.78,0.82,0.85,0.88,0.90,0.92,0.95];
+  const sandScatter = occData.map(o => ({ x: Math.round(o*100), y: Math.round(280 + (1-o)*80 + Math.random()*30) }));
+  const oceanScatter= occData.map(o => ({ x: Math.round(o*100), y: Math.round(295 + (1-o)*90 + Math.random()*30) }));
+  destroyChart('occAdrChart');
+  const oac = document.getElementById('occAdrChart');
+  if (oac) charts['occAdrChart'] = new Chart(oac, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'Sandalfoot', data: sandScatter, backgroundColor: c.sand+'cc', pointRadius: 7 },
+        { label: "Ocean's Reach", data: oceanScatter, backgroundColor: c.ocean+'cc', pointRadius: 7 },
+      ]
+    },
+    options: { ...CHART_DEFAULTS, scales:{x:{grid:{color:c.grid},title:{display:true,text:'Occupancy %',font:{family:"'Plus Jakarta Sans'",size:11}},ticks:{font:{family:"'DM Mono'",size:10},callback:v=>v+'%',color:c.text}},y:{grid:{color:c.grid},title:{display:true,text:'ADR ($)',font:{family:"'Plus Jakarta Sans'",size:11}},ticks:{font:{family:"'DM Mono'",size:10},callback:v=>'$'+v,color:c.text}}} }
+  });
+}
+
+function calcMonthlyADR() {
+  const months = {};
+  DISPLAY_DATA.filter(r=>r.room_type==='2BR Gulf View').forEach(r => {
+    const m = r.date.slice(0,7);
+    if (!months[m]) months[m] = { sand:[], ocean:[] };
+    months[m].sand.push(r.sandalfoot_rate);
+    months[m].ocean.push(r.oceansreach_rate);
+  });
+  return Object.keys(months).sort().slice(0,12).map(m => ({
+    label: new Date(m+'-01').toLocaleDateString('en',{month:'short',year:'2-digit'}),
+    sand:  Math.round(avg(months[m].sand)),
+    ocean: Math.round(avg(months[m].ocean)),
+  }));
+}
+
+function calcWeeklyADR() {
+  const weeks = {};
+  DISPLAY_DATA.filter(r=>r.room_type==='2BR Gulf View').forEach(r => {
+    const d = r.dateObj;
+    const dow = d.getDay();
+    const mon = new Date(d); mon.setDate(d.getDate() - (dow===0?6:dow-1));
+    const key = mon.toISOString().split('T')[0];
+    if (!weeks[key]) weeks[key] = { sand:[], ocean:[] };
+    weeks[key].sand.push(r.sandalfoot_rate);
+    weeks[key].ocean.push(r.oceansreach_rate);
+  });
+  return Object.keys(weeks).sort().slice(0,26).map(w => ({
+    label: w.slice(5),
+    sand:  Math.round(avg(weeks[w].sand)),
+    ocean: Math.round(avg(weeks[w].ocean)),
+  }));
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    HEATMAP                                       ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function renderHeatmap() {
+  const container = document.getElementById('heatmapContainer');
+  const rep = DISPLAY_DATA.filter(r=>r.room_type==='2BR Gulf View');
+  const byDate = {};
+  rep.forEach(r => { byDate[r.date] = r; });
+  const dates = Object.keys(byDate).sort();
+  if (!dates.length) { container.innerHTML='<p style="color:var(--text-muted);font-size:13px;">No data for selected range.</p>'; return; }
+
+  // Group by month
+  const months = {};
+  dates.forEach(d => {
+    const m = d.slice(0,7);
+    if (!months[m]) months[m] = [];
+    months[m].push(d);
+  });
+
+  let html = '';
+  Object.keys(months).sort().forEach(m => {
+    const mDates = months[m];
+    const mLabel = new Date(m+'-15').toLocaleDateString('en',{month:'long',year:'numeric'});
+    html += `<div style="margin-bottom:20px;"><div style="font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:8px;">${mLabel}</div>`;
+    html += '<div style="display:flex;gap:3px;margin-bottom:4px;">';
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+      html += `<div class="heatmap-header" style="flex:1;">${d}</div>`;
+    });
+    html += '</div><div class="heatmap-grid">';
+
+    // Pad start
+    const firstDow = new Date(mDates[0]).getDay();
+    for (let i=0;i<firstDow;i++) html += '<div></div>';
+
+    mDates.forEach(d => {
+      const r = byDate[d];
+      const diff = r.sandalfoot_rate - r.oceansreach_rate;
+      const maxDiff = 80;
+      const intensity = Math.min(Math.abs(diff)/maxDiff, 1);
+      let bg, tc;
+      if (Math.abs(diff) < 5) { bg='rgba(107,122,153,0.3)'; tc='var(--text-muted)'; }
+      else if (diff < 0) { // Sand cheaper → green
+        bg = `rgba(16,185,129,${0.2 + intensity*0.7})`;
+        tc = '#065f46';
+      } else { // Ocean cheaper → red
+        bg = `rgba(239,68,68,${0.2 + intensity*0.7})`;
+        tc = '#7f1d1d';
+      }
+      const day = new Date(d).getDate();
+      html += `
+        <div class="heatmap-cell" style="background:${bg};color:${tc};" title="${d}: Sand ${fmt(r.sandalfoot_rate)} vs Ocean ${fmt(r.oceansreach_rate)} (${diff>0?'+':''}${fmt(diff)})">
+          <div class="heatmap-day">${day}</div>
+          <div class="heatmap-diff">${diff>0?'+':''}${Math.abs(diff)}</div>
+          <div class="tooltip">${d} · ${diff>0?'+':''}${fmt(diff)}</div>
+        </div>`;
+    });
+
+    html += '</div></div>';
+  });
+
+  container.innerHTML = html;
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    INSIGHTS & ALERTS                             ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const ALERTS = [
+  { icon:'🔴', title:'Rate Drop Detected', msg:"Ocean's Reach reduced 2BR rates by 18% for Jun 14–21. Consider matching to capture demand.", severity:'high', date: 'Jun 8' },
+  { icon:'🟡', title:'Weekend Gap Widening', msg:'Your weekend rates average 14% above competitor. Monitor booking pace.', severity:'medium', date: 'Jun 5' },
+  { icon:'🔵', title:'Demand Surge Forecast', msg:'July 4th weekend shows historically high demand — consider +20% surcharge.', severity:'info', date: 'Jun 3' },
+];
+const RECS = [
+  { icon:'💚', title:'Undercut Aug 10–17', msg:"Competitor rates are $45 higher — lower Sandalfoot by $20 to capture full-week bookings.", action:'Apply $-20 Adj.' },
+  { icon:'🏷️', title:'Add Value Package for Sep', msg:'Shoulder season — bundle complimentary cleaning or parking to maintain rate while adding value.', action:'View Package Builder' },
+  { icon:'📈', title:'Raise Jul 4–6 Rates', msg:'Your rates are 8% below market during peak holiday — room to increase by $35–$50.', action:'Apply +$40 Adj.' },
+];
+
+function renderInsights() {
+  const s = calcStats(DISPLAY_DATA);
+
+  // Alerts
+  const al = document.getElementById('alertsList');
+  if (al) al.innerHTML = ALERTS.map(a => `
+    <div class="card" style="padding:14px 18px;display:flex;gap:12px;align-items:flex-start;border-left:3px solid ${a.severity==='high'?'var(--red)':a.severity==='medium'?'var(--sand)':'var(--accent)'}">
+      <span style="font-size:18px;">${a.icon}</span>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:13px;">${a.title} <span style="font-size:11px;color:var(--text-muted);font-weight:400;">— ${a.date}</span></div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">${a.msg}</div>
+      </div>
+    </div>`).join('');
+
+  // Recommendations
+  const rl = document.getElementById('recsList');
+  if (rl) rl.innerHTML = RECS.map(r => `
+    <div class="rec-card" style="display:flex;gap:12px;align-items:flex-start;">
+      <span style="font-size:18px;">${r.icon}</span>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:13px;">${r.title}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">${r.msg}</div>
+      </div>
+      <button style="white-space:nowrap;background:var(--accent);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);">${r.action}</button>
+    </div>`).join('');
+
+  // Insight KPIs
+  if (s.diffs) {
+    set('ins-gap', fmt(Math.max(...s.diffs.map(Math.abs))));
+    set('ins-optimal', fmt(s.sandADR * 0.97));
+  }
+  document.getElementById('alertCount').textContent = ALERTS.length + ' alerts';
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    TAB NAVIGATION                                ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function showTab(name) {
+  ['overview','rateTable','charts','heatmap','insights'].forEach(t => {
+    const el = document.getElementById('tab-'+t);
+    if (el) el.style.display = t===name ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const mapping = {overview:0,rateTable:1,charts:2,heatmap:3,insights:4};
+  const items = document.querySelectorAll('.nav-item');
+  if (items[mapping[name]]) items[mapping[name]].classList.add('active');
+  if (name==='charts') setTimeout(()=>renderCharts(),50);
+  if (name==='heatmap') renderHeatmap();
+}
+
+function switchChart(type, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['Line','Bar','Diff','Dist'].forEach(t=>{
+    const el=document.getElementById('chart'+t+'Wrap');
+    if(el) el.style.display='none';
+  });
+  const map={line:'Line',bar:'Bar',diff:'Diff',dist:'Dist'};
+  const el=document.getElementById('chart'+map[type]+'Wrap');
+  if(el) el.style.display='';
+  setTimeout(()=>renderCharts(),50);
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    DARK MODE                                     ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function toggleDark() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  const btn = document.getElementById('darkBtn');
+  btn.innerHTML = isDark
+    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg> Light'
+    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark';
+  // Update flatpickr calendars
+  setTimeout(()=>renderCharts(),100);
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    EXPORT                                        ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function exportCSV() {
+  const headers = ['Date','Day','Room Type','Sandalfoot Rate','Oceans Reach Rate','Difference','Pct Variance','Position','Channel'];
+  const rows = DISPLAY_DATA.map(r => {
+    const diff = r.sandalfoot_rate - r.oceansreach_rate;
+    const pct  = (diff/r.oceansreach_rate*100).toFixed(1);
+    return [r.date, r.dayOfWeek, r.room_type, r.sandalfoot_rate, r.oceansreach_rate, diff, pct+'%', diff<=0?'Lower':'Higher', r.channel].join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  download('rate-comparison.csv', csv, 'text/csv');
+}
+
+function exportExcel() {
+  // Build HTML table for Excel compatibility
+  let tbl = '<table><tr><th>Date</th><th>Day</th><th>Room Type</th><th>Sandalfoot</th><th>Ocean Reach</th><th>Diff</th><th>Pct</th><th>Position</th><th>Channel</th></tr>';
+  DISPLAY_DATA.forEach(r => {
+    const diff = r.sandalfoot_rate - r.oceansreach_rate;
+    tbl += `<tr><td>${r.date}</td><td>${r.dayOfWeek}</td><td>${r.room_type}</td><td>${r.sandalfoot_rate}</td><td>${r.oceansreach_rate}</td><td>${diff}</td><td>${(diff/r.oceansreach_rate*100).toFixed(1)}%</td><td>${diff<=0?'Lower':'Higher'}</td><td>${r.channel}</td></tr>`;
+  });
+  tbl += '</table>';
+  const blob = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel'><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Rates</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>${tbl}</body></html>`;
+  download('rate-comparison.xls', blob, 'application/vnd.ms-excel');
+}
+
+function download(filename, content, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type}));
+  a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function dismissAlert(btn) { btn.closest('.alert-banner').remove(); }
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    INIT                                          ║
+// ╚══════════════════════════════════════════════════════════════════╝
+document.addEventListener('DOMContentLoaded', () => {
+  // Set last updated
+  document.getElementById('lastUpdated').textContent = new Date().toLocaleDateString('en',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  initDatePickers();
+  // Default: next 30 days
+  const today = new Date(); today.setHours(0,0,0,0);
+  currentStart = new Date(today);
+  currentEnd = new Date(today); currentEnd.setDate(today.getDate()+29);
+  applyDateRange();
+
+  // Chart.js global defaults
+  Chart.defaults.font.family = "'Plus Jakarta Sans'";
+});
+</script>
+</body>
+</html>
